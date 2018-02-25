@@ -68,40 +68,51 @@ function begin() {
 let randomNumber = '';
 let random = '';
 function randomBox() {
+  win();
   randomNumber = Math.floor((Math.random() * 9) + 1);
-  random = $('ul li:nth-child(' + randomNumber + ')' );
+  random = $('ul li.box:nth-child(' + randomNumber + ')' );
   if(random.hasClass('placed')){
     randomBox();
   }else {
   $(random).addClass('box-filled-2 placed')
   }
 }
+let winFunctionFired = 0;
 const autoplay = function() {
   randomBox();
+  win();
   $('#player2').removeClass('active');
   $('#player1').addClass('active');
 }
 
 const changePlayer = function() {
-  if($(this).hasClass('placed')){
-  }else if($('#player1').hasClass('active')){
-    if(gameMode === 'solo'){
-    setTimeout(autoplay, 1500);
-    clearTimeout(autoplay);
+  winFunctionFired = 0;
+  win();
+  if(gameMode === 'solo' && $('#player2').hasClass('active')){
+  }else{
+    if($(this).hasClass('placed')){
+    }else if($('#player1').hasClass('active')){
+      if(gameMode === 'solo'){
+        win();
+        setTimeout(autoplay, 1500);
+        clearTimeout(autoplay);
+        winFunctionFired = 1;
+      }
+      $('#player1').removeClass('active');
+      $('#player2').addClass('active');
+      $(this).addClass('placed');
+    }else if($('#player2').hasClass('active')) {
+      $('#player2').removeClass('active');
+      $('#player1').addClass('active');
+      $(this).addClass('placed');
     }
-    $('#player1').removeClass('active');
-    $('#player2').addClass('active');
-    $(this).addClass('placed');
-    makeArray();
-    win();
-  }else {
-    $('#player2').removeClass('active');
-    $('#player1').addClass('active');
-    $(this).addClass('placed');
-    makeArray();
-    win();
+    if(winFunctionFired === 0){
+      win();
+    }
+    $('.box.placed:not(.box-filled-1):not(.box-filled-2)').removeClass('placed');
   }
 }
+
 
 const addIcon = function() {
   if(gameMode === 'solo' && $('#player2').hasClass('active')){
@@ -125,6 +136,7 @@ const removeIcon = function() {
     }
   }
 }
+
 let boxesArray = [];
 let classArray = [];
 let horizontal1 = [];
@@ -138,6 +150,7 @@ let diagonal2 = [];
 let winArray = [];
 
 function makeArray(){
+  boxesArray = [];
   boxesArray = $('.box').toArray();
 }
 
@@ -183,52 +196,85 @@ function buildWin() {
       diagonal2
     ]
 }
-let playerTwo = []
-let playerOne = []
+let playerTwo = ["box box-filled-2 placed", "box box-filled-2 placed", "box box-filled-2 placed"];
+let playerOne = ["box box-filled-1 placed", "box box-filled-1 placed", "box box-filled-1 placed"];
+let winString = ''
+function winResult() {
+  for (i = 0; i < winArray.length; i++){
+      if(winArray[i].toString() === playerTwo.toString()) {
+        $('#finish').removeClass('hide')
+        $('#finish').addClass('screen-win-two');
+        $('#board').addClass('hide');
+        if(gameMode === 'solo') {
+          winString = '';
+          winString = 'computer';
+        }
+        if(gameMode === 'double'){
+          winString = '';
+          winString = 'player2';
+        }
+        resetBoard();
+      }else if(winArray[i].toString() === playerOne.toString()) {
+        $('#finish').removeClass('hide');
+        $('#finish').addClass('screen-win-one');
+        $('#board').addClass('hide');
+        winString = '';
+        winString = 'player1';
+        console.log('winArray = PlayerOne')
+        resetBoard();
+      }
+    }
+   isTie();
+  }
 
-function checkWin() {
-  playerTwo = ["box box-filled-2 placed", "box box-filled-2 placed", "box box-filled-2 placed"];
-  playerOne = ["box box-filled-1 placed", "box box-filled-1 placed", "box box-filled-1 placed"];
-  if($('.placed').length === 9){
+function isTie() {
+  if($('li.placed').length === $('li.box').length && $('#finish').hasClass('hide')){
     $('#finish').removeClass('hide')
     $('#finish').addClass('screen-win-tie')
     $('#board').addClass('hide');
     $('.message').append("It's a Tie!");
-  }
-  for (i = 0; i < winArray.length; i++)
-  if(winArray[i].toString() === playerTwo.toString()) {
-    $('#finish').removeClass('hide')
-    $('#finish').addClass('screen-win-two');
-    $('#board').addClass('hide');
-    if(gameMode === 'solo') {
-      $('.message').append("Computer Wins!");
-    } else{
-      $('.message').append(name2 + ' Wins');
-    }
-  }else if(winArray[i].toString() === playerOne.toString()) {
-    $('#finish').removeClass('hide');
-    $('#finish').addClass('screen-win-one');
-    $('#board').addClass('hide');
-    $('.message').append(name + ' Wins');
+    resetBoard();
   }
 }
-
+let messageString = '';
+let winComplete = false;
 
 function win() {
+  if(winComplete === true){
+  }else {
+    makeArray();
     resetArray();
-  for (i = 0; i < boxesArray.length; i++) {
-    classArray.push(boxesArray[i].attributes.class.value);
-    }
+    for (i = 0; i < boxesArray.length; i++) {
+      classArray.push(boxesArray[i].attributes.class.value);
+      }
     buildWin();
-    checkWin();
+    winResult();
+    if(winString === 'player1'){
+      messageString = name + ' Wins!'
+      $('.message').append(messageString);
+      winComplete = true;
+      }
+    if(winString === 'player2'){
+      messageString = name2 + ' Wins!'
+      $('.message').append(messageString);
+      winComplete = true;
+    }
+    if(winString === 'computer'){
+      messageString = 'Computer Wins!'
+      $('.message').append(messageString);
+      winComplete = true;
+    }
+  }
 }
-
-const reset = function() {
-  resetArray()
-  makeArray()
+function resetBoard() {
   $('.placed').removeClass('placed');
   $('.box-filled-1').removeClass('box-filled-1');
   $('.box-filled-2').removeClass('box-filled-2');
+}
+
+const reset = function() {
+  winComplete = false;
+  resetBoard();
   $('.message').empty();
   $('#finish').addClass('hide');
   $('#finish').removeClass('screen-win-one');
@@ -236,12 +282,15 @@ const reset = function() {
   $('#board').removeClass('hide');
   $('#oneplayer').removeClass('hide')
   $('#twoplayer').removeClass('hide')
+  resetArray()
+  makeArray()
+  winString = ''
 }
 
 $( document ).ready(start)
 $('.box').mouseover(addIcon)
 $('.box').mouseout(removeIcon)
-$('.box').click(changePlayer)
+$('.box:not(.placed)').click(changePlayer)
 $('#newgame').click(reset);
 $('#reset').click(function () {
     document.location.reload(true);
